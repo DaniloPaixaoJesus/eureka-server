@@ -1,0 +1,128 @@
+version: '2'
+services:
+    redis-cache:
+        hostname: redis-cache
+        image: redis:alpine
+        container_name: redis-cache
+        ports:
+            - 6379:6379
+        networks:
+            - microservice-network
+
+    rabbitmq:
+        hostname: rabbitmq
+        build:
+            context: .
+            dockerfile: rabbitmq.Dockerfile
+        environment:
+            RABBITMQ_DEFAULT_USER: "swedqmq"
+            RABBITMQ_DEFAULT_PASS: "swedqmq"
+        ports:
+        - 15672:15672
+        - 5672:5672
+        networks:
+            - microservice-network
+
+    eureka-server:
+        build:
+            dockerfile: ./eurekaserver/eureka.server.dockerfile
+            context: .
+        environment:
+            - EUREKA_PORT=8761
+        container_name: eureka-server
+        ports:
+            - 8761:8761
+        networks:
+            - microservice-network
+
+    # vehicle-track:
+    #     build:
+    #         dockerfile: ./vehicle-track/vehicle.track.dockerfile
+    #         context: .
+    #     environment:
+    #         - REDIS_HOST=redis-cache
+    #         - REDIS_PORT=6379
+    #         - RABBIT_MQ_USER=swedqmq
+    #         - RABBIT_MQ_PASSWORD=swedqmq
+    #         - RABBIT_MQ_HOST=rabbitmq
+    #         - RABBIT_MQ_PORT=5672
+    #         - EUREKA_SERVER=eureka-server
+    #         - EUREKA_PORT=8761
+    #     container_name: vehicle-track
+    #     ports:
+    #         - 8084:8084
+    #     networks:
+    #         - microservice-network
+    #     depends_on: 
+    #         - "eureka-server"
+    #         - "redis-cache"
+    #         - "rabbitmq"
+        # links:
+        #     - eureka-server
+        #     - redis-cache
+        #     - rabbitmq
+
+    # driver-service:
+    #     build:
+    #         dockerfile: ./driver/driver.service.dockerfile
+    #         context: .
+    #     environment:
+    #         - POSTGRES_HOST=postgres
+    #         - EUREKA_SERVER=eureka-server
+    #         - EUREKA_PORT=8761
+    #     container_name: driver-service
+    #     ports:
+    #         - 8082:8082
+    #     networks:
+    #         - microservice-network
+    #     depends_on: 
+    #         - "eureka-server"
+    #     links:
+    #         - eureka-server
+
+    # vehicle-service:
+    #     build:
+    #         dockerfile: ./vehicle/vehicle.service.dockerfile
+    #         context: .
+    #     environment:
+    #         - POSTGRES_HOST=postgres
+    #         - EUREKA_SERVER=eureka-server
+    #         - EUREKA_PORT=8761
+    #         - WEB_SOCKET_PROTOCOL=http
+    #         - WEB_SOCKET_HOST=vehicle-websocket
+    #         - WEB_SOCKET_PORT=8085
+    #     container_name: vehicle-service
+    #     ports:
+    #         - 8083:8083
+    #     networks:
+    #         - microservice-network
+    #     depends_on: 
+    #         - "eureka-server"
+    #         - "driver-service"
+    #         - "vehicle-track"
+    #     links:
+    #         - eureka-server
+    #         - driver-service
+    #         - vehicle-track
+
+    # websocket-server:
+    #     build:
+    #         dockerfile: ./websocketserver/websocket.dockerfile
+    #         context: .
+    #     environment:
+    #         - WEBSOCKET_URL=ws://vehicle-websocket:8085/livestatus-websocket
+    #         - EUREKA_SERVER=eureka-server
+    #         - EUREKA_PORT=8761
+    #     container_name: websocket-server
+    #     ports:
+    #         - 8085:8085
+    #     networks:
+    #         - microservice-network
+    #     depends_on: 
+    #         - "eureka-server"
+    #     links:
+    #         - eureka-server
+
+networks: 
+    microservice-network:
+        driver: bridge
