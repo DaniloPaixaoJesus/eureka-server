@@ -53,7 +53,7 @@ services:
 
     vehicle-track:
         build:
-            dockerfile: ./vehicle-track/vehicle.track.dockerfile
+            dockerfile: ./vehicle-track-microservice-eureka-client/vehicle.track.dockerfile
             context: .
         environment:
             - REDIS_HOST=redis
@@ -79,7 +79,7 @@ services:
 
     driver-service:
         build:
-            dockerfile: ./driver/driver.service.dockerfile
+            dockerfile: ./driver-microservice-eureka-client/driver.service.dockerfile
             context: .
         environment:
             - POSTGRES_HOST=postgres
@@ -97,7 +97,7 @@ services:
 
     vehicle-service:
         build:
-            dockerfile: ./vehicle/vehicle.service.dockerfile
+            dockerfile: ./vehicle-microservice-eureka-client/vehicle.service.dockerfile
             context: .
         environment:
             - POSTGRES_HOST=postgres
@@ -122,7 +122,7 @@ services:
 
     websocket-server:
         build:
-            dockerfile: ./websocketserver/websocket.dockerfile
+            dockerfile: ./vehicle-websocket-eureka-client/websocket.dockerfile
             context: .
         environment:
             - WEBSOCKET_URL=ws://vehicle-websocket:8085/livestatus-websocket
