@@ -49,6 +49,23 @@ services:
         networks:
             - microservice-network
 
+    zuul-server:
+        build:
+            dockerfile: ./zuul-api-gateway-server/zuul.server.dockerfile
+            context: .
+        environment:
+            - EUREKA_SERVER=eureka-server
+            - EUREKA_PORT=8761
+        container_name: zuul-server
+        ports:
+            - 8080:8080
+        depends_on: 
+            - "eureka-server"
+        links:
+            - eureka-server
+        networks:
+            - microservice-network
+
     eureka-server:
         build:
             dockerfile: ./microservice-eureka-server/eureka.server.dockerfile
