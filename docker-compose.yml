@@ -41,7 +41,7 @@ services:
 
     eureka-server:
         build:
-            dockerfile: ./eurekaserver/eureka.server.dockerfile
+            dockerfile: ./microservice-eureka-server/eureka.server.dockerfile
             context: .
         environment:
             - EUREKA_PORT=8761
