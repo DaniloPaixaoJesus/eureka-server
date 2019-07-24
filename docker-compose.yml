@@ -10,10 +10,11 @@ services:
             - "443:443"
         networks: 
             - microservice-network
-    redis:
+
+    redisdb:
         image: 'redis:4-alpine'
-        hostname: redis
-        container_name: redis
+        hostname: redisdb
+        container_name: redisdb
         environment:
         # ALLOW_EMPTY_PASSWORD is recommended only for development.
         - ALLOW_EMPTY_PASSWORD=yes
@@ -25,15 +26,38 @@ services:
         networks:
         - microservice-network
 
-    # redis:
-    #     image: 'redis:4-alpine'
-    #     # command: redis-server --requirepass 123456
-    #     entrypoint: redis-server --appendonly yes
-    #     container_name: redis
-    #     ports:
-    #     - 6379:6379
-    #     networks:
-    #         - microservice-network
+    vehiclemgdb:
+        image: mongo
+        command: mongod --port 27018
+        container_name: vehiclemgdb
+        restart: always
+        environment:
+            MONGO_INITDB_DATABASE: vehicledb
+        #    MONGO_INITDB_ROOT_USERNAME: root
+        #    MONGO_INITDB_ROOT_PASSWORD: example
+        ports:
+            - '27018:27018'
+        # volumes:
+            #- '/data/db'
+            # - './data/vehicledb/monbodb:/data/db'
+        networks: 
+            - microservice-network
+
+    driverdb:
+        image: mongo
+        container_name: driverdb
+        restart: always
+        environment:
+            MONGO_INITDB_DATABASE: driverdb
+        #    MONGO_INITDB_ROOT_USERNAME: root
+        #    MONGO_INITDB_ROOT_PASSWORD: example
+        ports:
+            - '27017:27017'
+        # volumes:
+            #- '/data/db'
+            # - './data/driverdb/monbodb:/data/db'
+        networks: 
+            - microservice-network
 
     rabbitmq:
         hostname: rabbitmq
@@ -78,12 +102,63 @@ services:
         networks:
             - microservice-network
 
+    driver-service:
+        build:
+            dockerfile: ./driver-microservice-eureka-client/driver.service.dockerfile
+            context: .
+        environment:
+            - MONGO_HOST=driverdb
+            - MONGO_PORT=27017
+            - MONGO_DATABASE=driverdb
+            - EUREKA_SERVER=eureka-server
+            - EUREKA_PORT=8761
+        container_name: driver-service
+        ports:
+            - 8082:8082
+        depends_on: 
+            - "eureka-server"
+            - "driverdb"
+        links:
+            - eureka-server
+            - driverdb
+        networks:
+            - microservice-network
+
+    vehicle-service:
+        build:
+            dockerfile: ./vehicle-microservice-eureka-client/vehicle.service.dockerfile
+            context: .
+        environment:
+            - MONGO_HOST=vehiclemgdb
+            - MONGO_PORT=27018
+            - MONGO_DATABASE=vehicledb
+            - EUREKA_SERVER=eureka-server
+            - EUREKA_PORT=8761
+            - WEB_SOCKET_PROTOCOL=http
+            - WEB_SOCKET_HOST=vehicle-websocket
+            - WEB_SOCKET_PORT=8085
+        container_name: vehicle-service
+        ports:
+            - 8083:8083
+        depends_on: 
+            - "eureka-server"
+            - "driver-service"
+            - "vehiclemgdb"
+            # - "vehicle-track"
+        links:
+            - eureka-server
+            - driver-service
+            - vehiclemgdb
+            # - vehicle-track
+        networks:
+            - microservice-network
+
     vehicle-track:
         build:
             dockerfile: ./vehicle-track-microservice-eureka-client/vehicle.track.dockerfile
             context: .
         environment:
-            - REDIS_HOST=redis
+            - REDIS_HOST=redisdb
             - REDIS_PORT=6379
             - RABBIT_MQ_USER=swedqmq
             - RABBIT_MQ_PASSWORD=swedqmq
@@ -96,54 +171,11 @@ services:
             - 8084:8084
         depends_on: 
             - eureka-server
-            - redis
+            - redisdb
             - rabbitmq
         links:
-            - "redis"
+            - "redisdb"
             - "rabbitmq"
-        networks:
-            - microservice-network
-
-    driver-service:
-        build:
-            dockerfile: ./driver-microservice-eureka-client/driver.service.dockerfile
-            context: .
-        environment:
-            - POSTGRES_HOST=postgres
-            - EUREKA_SERVER=eureka-server
-            - EUREKA_PORT=8761
-        container_name: driver-service
-        ports:
-            - 8082:8082
-        depends_on: 
-            - "eureka-server"
-        links:
-            - eureka-server
-        networks:
-            - microservice-network
-
-    vehicle-service:
-        build:
-            dockerfile: ./vehicle-microservice-eureka-client/vehicle.service.dockerfile
-            context: .
-        environment:
-            - POSTGRES_HOST=postgres
-            - EUREKA_SERVER=eureka-server
-            - EUREKA_PORT=8761
-            - WEB_SOCKET_PROTOCOL=http
-            - WEB_SOCKET_HOST=vehicle-websocket
-            - WEB_SOCKET_PORT=8085
-        container_name: vehicle-service
-        ports:
-            - 8083:8083
-        depends_on: 
-            - "eureka-server"
-            - "driver-service"
-            - "vehicle-track"
-        links:
-            - eureka-server
-            - driver-service
-            - vehicle-track
         networks:
             - microservice-network
 
